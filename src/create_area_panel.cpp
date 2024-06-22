@@ -1,14 +1,16 @@
 #include <fstream>
 
-#include <ros/ros.h>
-#include <rviz/panel.h>
-
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 
+#include <geometry_msgs/Point.h>
+
+#include <ros/package.h>
+
 #include "create_area_panel.h"
+
 
 namespace my_rviz_plugins
 {
@@ -39,11 +41,9 @@ CreateAreaPanel::CreateAreaPanel(QWidget* parent) : rviz::Panel(parent)
   // button layout begin //
   QHBoxLayout* button_layout = new QHBoxLayout;
 
-  add_button_    = new QPushButton("Add Point");
   save_button_   = new QPushButton("Save");
   delete_button_ = new QPushButton("Delete All");
 
-  button_layout->addWidget(add_button_);
   button_layout->addWidget(save_button_);
   button_layout->addWidget(delete_button_);
 
@@ -59,27 +59,32 @@ CreateAreaPanel::CreateAreaPanel(QWidget* parent) : rviz::Panel(parent)
 
   connect(save_file_name_, SIGNAL(returnPressed()), this, SLOT(updateName()));
   connect(area_name_,      SIGNAL(returnPressed()), this, SLOT(updateName()));
-  connect(add_button_,    SIGNAL(clicked()), this, SLOT(addPoint()));
   connect(save_button_,   SIGNAL(clicked()), this, SLOT(saveFile()));
   connect(delete_button_, SIGNAL(clicked()), this, SLOT(deleteAll()));
 
-  /////////
-  // ROS //
-  /////////
+  ///////////////
+  ///// ROS /////
+  ///////////////
 
-  // subscriber
-  sub_ = nh_.subscribe("clicked_point", 10, &CreateAreaPanel::pointCallback, this);
+  sub_ = nh_.subscribe("clicked_point", 1, &CreateAreaPanel::callback, this);
+  pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_markers", 1);
 
-  // initialize point array
-  points_ = new geometry_msgs::Point[max_points_];
-  num_points_ = 0;
+  // initialize point_
+  point_.x = point_.y = point_.z = 0;
+
+  // // Initialize polygon_marker_ for the polygon
+  // polygon_marker_.header.frame_id = "map"; // Adjust frame_id as per your requirement
+  // polygon_marker_.ns = "create_area_polygon";
+  // polygon_marker_.id = 0;
+  // polygon_marker_.type = visualization_msgs::Marker::LINE_STRIP;
+  // polygon_marker_.action = visualization_msgs::Marker::ADD;
+  // polygon_marker_.pose.orientation.w = 1.0;
+  // polygon_marker_.scale.x = 0.1; // Line width
+  // polygon_marker_.color.r = 1.0;
+  // polygon_marker_.color.a = 1.0;
 }
 
-CreateAreaPanel::~CreateAreaPanel()
-{
-  delete[] points_;
-  num_points_ = 0;
-}
+CreateAreaPanel::~CreateAreaPanel() = default;
   
 void CreateAreaPanel::updateName()
 {
@@ -95,66 +100,115 @@ void CreateAreaPanel::updateName()
   }
 }
 
-void CreateAreaPanel::addPoint()
-{
-  ROS_INFO("Attempt to add point:\nx: %f,\ny: %f,\nz: %f\n", point_.x, point_.y, point_.z);
-  if (num_points_ < max_points_)
-  {
-    points_[num_points_].x = point_.x;
-    points_[num_points_].y = point_.y;
-    points_[num_points_].z = point_.z;
-    num_points_++;
-    ROS_INFO("Point was added!");
-  }
-  else ROS_WARN("Maximum number of points reached (%d). Cannot add more points.", max_points_);
-}
-
-bool isNull(const geometry_msgs::Point& data)
-{
-    return (data.x == 0 && data.y == 0 && data.z == 0);
-}
-
 void CreateAreaPanel::saveFile()
 {
-  if (num_points_ == 0)
+  if (points_.empty()) 
   {
       ROS_WARN("No points to save.");
       return;
   }
-  std::string file_name = "~/" + save_file_name_->text().toStdString() + ".yaml";
+
+  std::string file_name = ros::package::getPath("my_rviz_plugins") + "/" + save_file_name_->text().toStdString() + ".yaml";
+  ROS_INFO("FIle name: %s", file_name.c_str());
   std::ofstream outputFile(file_name, std::ios::app);
   if (outputFile.is_open())
   {
     ROS_INFO("Start writing file!");
-    // ROS_INFO("[%f, %f, %f]", points_[0].x, points_[0].y, points_[0].z);
     outputFile << area_name_->text().toStdString() << ": [" << std::endl;
-    for (int i = 0; !isNull(points_[i]); i++)
+    for (const auto& point : points_)
     {
-      outputFile << "\t[" << points_[i].x << ", " << points_[i].y << "],\n";
+      outputFile << "\t[" << point.x << ", " << point.y << "],\n";
     }
     outputFile << "]" << std::endl;
     outputFile.close();
+    ROS_INFO("File was saved!");
   }
   else 
   {
     ROS_WARN("Unable to open file!");
   }
-  ROS_INFO("File was saved!");
 }
 
 void CreateAreaPanel::deleteAll()
 {
-  num_points_ = 0;
+  points_.clear();
+  markers_.clear();
+  // Publish markers with action DELETE to remove them from RViz
+  visualization_msgs::Marker marker_delete;
+  marker_delete.action = visualization_msgs::Marker::DELETEALL;
+  pub_.publish(marker_delete);
   ROS_INFO("Deleted all registed points!");
 }
 
-void CreateAreaPanel::pointCallback(const geometry_msgs::PointStamped::ConstPtr & point_stamped_msg)
+void CreateAreaPanel::callback(const geometry_msgs::PointStamped::ConstPtr& msg)
 {
-  point_ = point_stamped_msg->point;
-  
-  ROS_INFO("Received point:\nx: %f,\ny: %f,\nz: %f\n", point_.x, point_.y, point_.z);
-}
+  geometry_msgs::Point pre_point = point_;
+  if (msg->point != pre_point)
+  {
+    point_ = msg->point;
+    points_.push_back(point_);
 
+    //////////////////////////////////
+    ///// VISUALIZE WITH MARKERS  ////
+    //////////////////////////////////
+
+    // prepare marker
+    visualization_msgs::Marker marker;
+
+    marker.header = msg->header;
+    marker.ns = "create_area_marker";
+    marker.id = markers_.size();
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position = point_;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker.color.a = 1.0;
+
+    marker.lifetime = ros::Duration();  // Marker remains until explicitly deleted
+
+    markers_.push_back(marker); // Add the new marker to the list
+
+    // Publish all markers
+    for (const auto& m : markers_)
+    {
+        pub_.publish(m);
+    }
+
+    //////////////////////////////////
+    ///// VISUALIZE WITH POLYGON  ////
+    //////////////////////////////////
+
+    // // update polygon
+    // polygon_marker_.points.clear();
+    // for (const auto& p: points_)
+    // {
+    //   geometry_msgs::Point pt;
+    //   pt.x = p.x;
+    //   pt.y = p.y;
+    //   pt.z = 0;
+    //   polygon_marker_.points.push_back(pt);
+    // }
+
+    // // Ensure closed loop by adding the first point at the end
+    // if (!points_.empty())
+    // {
+    //     geometry_msgs::Point first_point = points_.front();
+    //     polygon_marker_.points.push_back(first_point);
+    // }
+
+    // // Publish polygon_marker_
+    // pub_.publish(polygon_marker_);
+  }
+}
 } // end namespace my_rviz_plugins
 
 #include <pluginlib/class_list_macros.h>

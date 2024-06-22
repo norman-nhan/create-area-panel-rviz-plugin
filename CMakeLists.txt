@@ -6,12 +6,12 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
   pluginlib
   std_msgs
-  rqt_gui
+  visualization_msgs
 )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp rviz pluginlib std_msgs rqt_gui
+  CATKIN_DEPENDS roscpp rviz pluginlib std_msgs visualization_msgs
 )
 
 # Qt configulation
@@ -29,7 +29,7 @@ add_definitions(-DQT_NO_KEYWORDS)
 ###########
 
 include_directories(
-  include
+  # include
   ${catkin_INCLUDE_DIRS}
 )
 

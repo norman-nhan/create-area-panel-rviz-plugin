@@ -2,7 +2,5 @@
     <node name="map_server" pkg="map_server" type="map_server" args="$(find my_rviz_plugins)/maps/map.yaml" />
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find my_rviz_plugins)/rviz/default.rviz"/>
-
-    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--standalone rqt_console"/>
 </launch>
   

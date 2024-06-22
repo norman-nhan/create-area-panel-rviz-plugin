@@ -2,12 +2,10 @@
 #ifndef CREATE_AREA_PANEL_H
 #define CREATE_AREA_PANEL_H
 
-// Qt implementation >>>>
 #ifndef Q_MOC_RUN
-# include <ros/ros.h>
-# include <rviz/panel.h>
+#include <ros/ros.h>
+#include <rviz/panel.h>
 #endif
-// Qt implementation <<<<
 
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -15,6 +13,10 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
+
+#include <visualization_msgs/Marker.h>
+
+#include <vector> 
 
 namespace my_rviz_plugins
 {
@@ -27,25 +29,26 @@ public:
 
 protected Q_SLOTS:
   void updateName();
-  void addPoint();
   void saveFile();
   void deleteAll();
-  void pointCallback(const geometry_msgs::PointStamped::ConstPtr & point_stamped_msg);
+
+  void callback(const geometry_msgs::PointStamped::ConstPtr& msg);
 
 protected:
   QLineEdit*   save_file_name_;
   QLineEdit*   area_name_;
-  QPushButton* add_button_;
   QPushButton* save_button_;
   QPushButton* delete_button_;
 
+  std::vector<geometry_msgs::Point> points_;
   geometry_msgs::Point point_;
-  geometry_msgs::Point* points_ = nullptr;
-  int max_points_ = 100; // Maximum number of points (adjust as needed)
-  int num_points_ = 0;   // Number of points currently stored
+
+  // visualization_msgs::Marker polygon_marker_;
+  std::vector<visualization_msgs::Marker> markers_;
 
   ros::NodeHandle nh_;
   ros::Subscriber sub_;
+  ros::Publisher pub_;
 };
 } // end namespace my_rviz_plugins
 

@@ -1,5 +1,5 @@
 # Create Area Panel - Rviz Plugin
-a panel for creating area by choosing point via Publish Point tool in Rviz and save it to .yaml file
+a panel for creating area by choosing point via Publish Point tool in Rviz and save it to your.yaml file
 ## ビルド
 ```bash
 cd <ros_ws>/src # <ros_ws> is where your current workingspace with ROS is 

@@ -1,6 +1,6 @@
 <launch>
     <node name="map_server" pkg="map_server" type="map_server" args="$(find my_rviz_plugins)/maps/map.yaml" />
-
+    <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui"/>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find my_rviz_plugins)/rviz/default.rviz"/>
 </launch>
   

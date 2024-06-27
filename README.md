@@ -12,7 +12,7 @@ https://github.com/norman-nhan/my_rviz_plugins/assets/90228548/ba8f49bc-fb98-476
 
 ```bash
 cd <ros_ws>/src # replace <ros_ws> with your ROS workspace 
-git clone https://github.com/norman-nhan/create-area-panel-rviz-plugin.git
+git clone https://github.com/norman-nhan/my_rviz_plugins.git
 rosdep install -iry --from-path ./
 catkin build my_rviz_plugins
 source ~/.bashrc

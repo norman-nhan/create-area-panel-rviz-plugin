@@ -4,4 +4,9 @@
       Create Area Panel
     </description>
   </class>
+  <class name="my_rviz_plugins/CustomPublishPointTool" type="my_rviz_plugins::CustomPublishPointTool" base_class_type="rviz::Tool">
+    <description>
+      Create Custom Publish Point Tool 
+    </description>
+  </class>
 </library>

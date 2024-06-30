@@ -71,17 +71,6 @@ CreateAreaPanel::CreateAreaPanel(QWidget* parent) : rviz::Panel(parent)
 
   // initialize point_
   point_.x = point_.y = point_.z = 0;
-
-  // // Initialize polygon_marker_ for the polygon
-  // polygon_marker_.header.frame_id = "map"; // Adjust frame_id as per your requirement
-  // polygon_marker_.ns = "create_area_polygon";
-  // polygon_marker_.id = 0;
-  // polygon_marker_.type = visualization_msgs::Marker::LINE_STRIP;
-  // polygon_marker_.action = visualization_msgs::Marker::ADD;
-  // polygon_marker_.pose.orientation.w = 1.0;
-  // polygon_marker_.scale.x = 0.1; // Line width
-  // polygon_marker_.color.r = 1.0;
-  // polygon_marker_.color.a = 1.0;
 }
 
 CreateAreaPanel::~CreateAreaPanel() = default;
@@ -100,6 +89,7 @@ void CreateAreaPanel::updateName()
   }
 }
 
+// Save points of one area to YAML file
 void CreateAreaPanel::saveFile()
 {
   if (points_.empty()) 
@@ -111,19 +101,16 @@ void CreateAreaPanel::saveFile()
   std::string file_name = ros::package::getPath("my_rviz_plugins") + "/" + save_file_name_->text().toStdString() + ".yaml";
   ROS_INFO("FIle name: %s", file_name.c_str());
   std::ofstream outputFile(file_name, std::ios::app);
-  if (outputFile.is_open())
-  {
+  if (outputFile.is_open()) {
     ROS_INFO("Start writing file!");
-    outputFile << area_name_->text().toStdString() << ": [" << std::endl;
+    outputFile << area_name_->text().toStdString() << ":" << std::endl;
     for (const auto& point : points_)
     {
-      outputFile << "\t[" << point.x << ", " << point.y << "],\n";
+      outputFile << " - [" << point.x << ", " << point.y << "]" << std::endl;
     }
-    outputFile << "]" << std::endl;
     outputFile.close();
     ROS_INFO("File was saved!");
-  }
-  else 
+  } else 
   {
     ROS_WARN("Unable to open file!");
   }
@@ -182,31 +169,6 @@ void CreateAreaPanel::callback(const geometry_msgs::PointStamped::ConstPtr& msg)
     {
         pub_.publish(m);
     }
-
-    //////////////////////////////////
-    ///// VISUALIZE WITH POLYGON  ////
-    //////////////////////////////////
-
-    // // update polygon
-    // polygon_marker_.points.clear();
-    // for (const auto& p: points_)
-    // {
-    //   geometry_msgs::Point pt;
-    //   pt.x = p.x;
-    //   pt.y = p.y;
-    //   pt.z = 0;
-    //   polygon_marker_.points.push_back(pt);
-    // }
-
-    // // Ensure closed loop by adding the first point at the end
-    // if (!points_.empty())
-    // {
-    //     geometry_msgs::Point first_point = points_.front();
-    //     polygon_marker_.points.push_back(first_point);
-    // }
-
-    // // Publish polygon_marker_
-    // pub_.publish(polygon_marker_);
   }
 }
 } // end namespace my_rviz_plugins
